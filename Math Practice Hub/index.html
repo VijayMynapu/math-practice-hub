@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Math Practice Hub Pro</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#3498db">
+    
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="top-nav">
+    <div class="nav-left">
+        <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+        <h2 class="nav-title">Math Hub Pro</h2>
+    </div>
+    <div class="nav-right">
+        <button class="header-btn" onclick="togglePerfPopup()">📊 <span id="hdrLifetimePerf">0</span>%</button>
+        <button class="header-btn" onclick="toggleDarkMode()">🌓</button>
+        <div class="mini-popup" id="perfPopup">
+            <h4>Performance Metrics</h4>
+            <div class="perf-row"><span>Till Now (Lifetime):</span><span class="perf-val correct" id="popLifetime">0%</span></div>
+            <div class="op-breakdown" id="popLifetimeOps"></div>
+            <div class="perf-row"><span>Today's Average:</span><span class="perf-val primary" id="popToday">0%</span></div>
+            <div style="font-size: 10px; color: #888; margin-top: 10px; text-align: center;">Based on Speed (6-11s) & Accuracy in Exams</div>
+        </div>
+    </div>
+</div>
+
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+<div class="sidebar" id="sidebar">
+    <h3>Sessions</h3>
+    <ul class="session-list" id="sessionList"></ul>
+</div>
+
+<div class="container" id="mainDashboard">
+    <div class="section-box">
+        <label>1. Solo Practice Mode:</label>
+        <select id="practiceMode" onchange="handleModeChange()">
+            <optgroup label="Arithmetic"><option value="addition">➕ Add</option><option value="subtraction">➖ Sub</option><option value="multiplication">✖️ Mult</option><option value="division" selected>➗ Div</option></optgroup>
+            <optgroup label="Percentages"><option value="percentage">📊 Pct (5 Modes)</option></optgroup>
+            <optgroup label="Powers & Roots"><option value="square">x² Sq</option><option value="cube">x³ Cube</option><option value="sqrt">√ Root</option><option value="cbrt">∛ C-Root</option></optgroup>
+        </select>
+        <div id="pctOptions" style="display:none; margin-top:10px;">
+            <select id="pctSubMode" onchange="handleModeChange()">
+                <option value="1">1. Std Frac (1/2-1/25)</option><option value="2">2. Rand Frac</option><option value="3">3. X% of Y</option><option value="4">4. X is what % of Y</option><option value="5">5. X % More/Less Y</option>
+            </select>
+            <div style="display:flex; gap:10px; font-size:12px; margin-top:5px;">
+                <label id="lblNum"><input type="checkbox" id="chkNum" onchange="generateQuestion()"> Rand Num</label>
+                <label id="lblJuggle"><input type="checkbox" id="chkJuggle" onchange="generateQuestion()"> Juggle</label>
+            </div>
+        </div>
+    </div>
+
+    <div class="section-box settings">
+        <label style="color:var(--correct);">2. Global Ranges (Applies to Exam too)</label>
+        <div style="margin-bottom:10px;"><label style="font-size:12px; font-weight:normal;"><input type="checkbox" id="digitModeToggle" onchange="handleModeChange()"> Specific Digit Mode (Arith/Div)</label></div>
+        
+        <div class="controls" id="controlsArith" style="display:none;">
+            <div class="control-group" id="grpRange"><label>Max Val:</label><input type="number" id="arithRange" value="50"></div>
+            <div class="control-group"><label>Numbers (n):</label><input type="number" id="arithN" value="2" min="2" onchange="handleModeChange()"></div>
+        </div>
+        <div class="controls" id="controlsDiv">
+            <div class="control-group"><label>Num Max:</label><input type="number" id="divNum" value="100"></div>
+            <div class="control-group"><label>Den Max:</label><input type="number" id="divDen" value="10"></div>
+        </div>
+        <div class="controls" id="controlsDigits" style="display:none;"></div>
+        <div class="controls" id="controlsPower" style="display:none;">
+            <div class="control-group"><label>Base Max:</label><input type="number" id="baseMax" value="20"></div>
+        </div>
+    </div>
+
+    <div class="section-box exam">
+        <label style="color:var(--incorrect);">3. Exam Generator (Perf Metric Enabled)</label>
+        <div class="flex-center" style="margin-bottom:15px;">
+            <span>Questions: </span>
+            <button class="btn-small" onclick="adjExamQ(-5)">-</button>
+            <span id="examQCount" style="font-weight:bold; font-size:18px;">10</span>
+            <button class="btn-small" onclick="adjExamQ(5)">+</button>
+        </div>
+        <div class="flex-center" style="margin-bottom:15px; font-size:14px; flex-wrap: wrap;">
+            <label><input type="radio" name="examTimer" value="strict" checked> Timer (Q×15s)</label>
+            <label><input type="radio" name="examTimer" value="practice"> Self-Analysis (Count-up)</label>
+        </div>
+        <label style="font-size:12px;">Include Operations:</label>
+        <div class="op-grid">
+            <label><input type="checkbox" class="ex-op" value="addition" checked> Add</label>
+            <label><input type="checkbox" class="ex-op" value="subtraction" checked> Sub</label>
+            <label><input type="checkbox" class="ex-op" value="multiplication"> Mult</label>
+            <label><input type="checkbox" class="ex-op" value="division" checked> Div</label>
+            <label><input type="checkbox" class="ex-op" value="pct_1"> Pct: Std Frac</label>
+            <label><input type="checkbox" class="ex-op" value="pct_2"> Pct: Rand Frac</label>
+            <label><input type="checkbox" class="ex-op" value="pct_3"> Pct: X% of Y</label>
+            <label><input type="checkbox" class="ex-op" value="pct_4"> Pct: X is % Y</label>
+            <label><input type="checkbox" class="ex-op" value="pct_5"> Pct: More/Less</label>
+            <label><input type="checkbox" class="ex-op" value="square"> Square</label>
+            <label><input type="checkbox" class="ex-op" value="sqrt"> Sq Root</label>
+            <label><input type="checkbox" class="ex-op" value="cube"> Cube</label>
+            <label><input type="checkbox" class="ex-op" value="cbrt"> Cb Root</label>
+        </div>
+        <button class="action-btn danger" onclick="startExam()">START EXAM</button>
+    </div>
+
+    <button class="action-btn" onclick="generateQuestion()">Gen Solo Question</button>
+    <div class="question-area" id="qArea">
+        <div style="font-size:11px; color:#888; margin-bottom:5px;">Precision: Up to 6 decimals.</div>
+        <div class="equation" id="eq">...</div>
+        <div class="input-row">
+            <div class="input-box-wrapper"><label id="l1">Answer:</label><input type="text" id="ans1" inputmode="decimal" onkeypress="handleKey(event)"></div>
+            <div class="input-box-wrapper" id="w2" style="display:none;"><label>Decimal %:</label><input type="number" id="ans2" step="0.000001" inputmode="decimal" onkeypress="handleKey(event)"></div>
+            <button class="action-btn success" onclick="checkAnswer()" style="width:60px; height:42px;">OK</button>
+        </div>
+        <div id="feedback" class="feedback"></div>
+    </div>
+</div>
+
+<div id="examOverlay">
+    <div class="exam-paper">
+        <div class="exam-header">
+            <div class="exam-timer" id="exTimerDisp">00:00</div>
+            <div class="exam-score" id="exScoreDisp">Score: 0/0</div>
+            <button class="action-btn" id="exSubmitBtn" onclick="submitExam()" style="width: auto; padding: 10px 20px;">Submit Paper</button>
+        </div>
+        <div style="font-size:12px; color:#888; margin-bottom:15px; text-align:center;">Note: Time is tracked per lock. Decimals accepted up to 6 places.</div>
+        <div id="examQuestionsList"></div>
+        <div class="exam-perf-report" id="exPerfReport">
+            <h4>Operational Performance Metrics</h4>
+            <div class="perf-grid" id="perfGridData"></div>
+            <p style="font-size:11px; color:#888; margin-top:10px;">Calculated using Speed (Target: <=6s) and Accuracy.</p>
+        </div>
+    </div>
+</div>
+
+<script src="js/app.js"></script>
+
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js')
+                .then(reg => console.log('Service Worker registered successfully.'))
+                .catch(err => console.log('Service Worker registration failed:', err));
+        });
+    }
+</script>
+</body>
+</html>
