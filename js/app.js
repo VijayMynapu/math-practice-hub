@@ -1,9 +1,7 @@
-// --- APP STATE & STORAGE ---
 let appData = JSON.parse(localStorage.getItem('mathHubData')) || {};
 let lifetimeAvg = 0, todayAvg = 0;
 
-// --- INIT ---
-function getTodayStr() { return new Date().toLocaleDateString('en-GB'); } // DD/MM/YYYY
+function getTodayStr() { return new Date().toLocaleDateString('en-GB'); }
 
 function calculateMetrics() {
     let totalDailyAverages = 0;
@@ -73,7 +71,6 @@ function renderSidebar() {
     });
 }
 
-// --- UI TOGGLES ---
 function toggleDarkMode() { document.body.classList.toggle('dark-mode'); }
 function toggleSidebar() { 
     document.getElementById('sidebar').classList.toggle('open');
@@ -84,14 +81,12 @@ function togglePerfPopup() {
     p.style.display = p.style.display === 'block' ? 'none' : 'block';
 }
 
-// --- UTILS ---
 const isNear = (a, b) => Math.abs(parseFloat(a) - parseFloat(b)) < 0.000002;
 function getGCD(a, b) { return b ? getGCD(b, a % b) : a; }
 function toMixed(n, d) { let v=(n*100)/d, w=Math.floor(v), r=(n*100)%d; if(r===0) return w.toString(); let c=getGCD(r, d); return `${w} ${r/c}/${d/c}`; }
 function getRand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 function getByDig(d) { if(d<=1) return getRand(1,9); return getRand(Math.pow(10, d-1), Math.pow(10, d)-1); }
 
-// --- FORM LOGIC ---
 function handleModeChange() {
     const mode = document.getElementById('practiceMode').value, sub = document.getElementById('pctSubMode').value;
     const isArith = ['addition','subtraction','multiplication'].includes(mode), isDiv = mode==='division', isPct = mode==='percentage', dMode = document.getElementById('digitModeToggle').checked;
@@ -111,7 +106,6 @@ function handleModeChange() {
     generateQuestion();
 }
 
-// --- MATH GENERATOR ---
 function buildQuestionData(opCode) {
     const dMode = document.getElementById('digitModeToggle').checked;
     let q="", a1="", a2="", opName = opCode;
@@ -161,7 +155,6 @@ function buildQuestionData(opCode) {
     return { op: opName, q: q, a1: a1.toString(), a2: a2.toString() };
 }
 
-// --- SOLO LOGIC ---
 let curA1="", curA2="", curQText="";
 function generateQuestion() {
     let mode = document.getElementById('practiceMode').value;
@@ -172,6 +165,7 @@ function generateQuestion() {
     document.getElementById('ans1').value=""; document.getElementById('ans2').value=""; document.getElementById('feedback').innerText="";
     setTimeout(() => document.getElementById('ans1').focus(), 10);
 }
+
 function checkAnswer() {
     let v1 = document.getElementById('ans1').value.trim(), v2 = document.getElementById('ans2').value.trim();
     if(!v1) return;
@@ -184,11 +178,25 @@ function checkAnswer() {
     const f = document.getElementById('feedback');
     f.innerText = correct ? "✅ Correct!" : "❌ Wrong. Ans: " + curA1 + (curA2?" | "+curA2:"");
     f.className = "feedback " + (correct?"correct":"incorrect");
+
+    // RESTORED HISTORY LOGIC
+    document.getElementById('historySection').style.display = 'block';
+    const tbody = document.getElementById('historyBody');
+    const row = document.createElement('tr');
+    row.innerHTML = `
+        <td style="padding: 8px;">Solo</td>
+        <td style="padding: 8px;">${curQText}</td>
+        <td style="padding: 8px;">${v1} ${v2 ? '| ' + v2 : ''}</td>
+        <td style="padding: 8px;">${curA1} ${curA2 ? '| ' + curA2 : ''}</td>
+        <td style="padding: 8px;" class="${correct ? 'status-correct' : 'status-wrong'}">${correct ? '✅' : '❌'}</td>
+    `;
+    tbody.prepend(row);
+
     setTimeout(generateQuestion, 1500);
 }
+
 function handleKey(e) { if(e.key === 'Enter') checkAnswer(); }
 
-// --- EXAM ENGINE & PERFORMANCE METRICS ---
 let examQCount = 10, examQs = [], examTInt = null, examTime = 0, isExamStrict = true;
 let lastExamActionTime = 0;
 
@@ -322,6 +330,22 @@ function submitExam() {
     }
     document.getElementById('perfGridData').innerHTML = repHTML;
     document.getElementById('exPerfReport').style.display = 'block';
+
+    // RESTORED EXAM HISTORY LOGIC
+    document.getElementById('historySection').style.display = 'block';
+    const tbody = document.getElementById('historyBody');
+    for(let j = examQs.length - 1; j >= 0; j--) {
+        let q = examQs[j];
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td style="padding: 8px;">Exam (${q.timeTaken.toFixed(1)}s)</td>
+            <td style="padding: 8px;">${q.q}</td>
+            <td style="padding: 8px;">${q.userAns || '-'}</td>
+            <td style="padding: 8px;">${q.a1} ${q.a2 ? '| ' + q.a2 : ''}</td>
+            <td style="padding: 8px;" class="${q.isCorrect ? 'status-correct' : 'status-wrong'}">${q.isCorrect ? '✅' : '❌'}</td>
+        `;
+        tbody.prepend(row);
+    }
 
     let todayStr = getTodayStr();
     if(!appData[todayStr]) appData[todayStr] = { exams: [], dailyScore: 0 };

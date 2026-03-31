@@ -4,10 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Math Practice Hub Pro</title>
-    
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#3498db">
-    
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -115,6 +113,23 @@
         </div>
         <div id="feedback" class="feedback"></div>
     </div>
+
+    <div class="section-box" id="historySection" style="margin-top: 20px; display: none; overflow-x: auto;">
+        <h3 style="margin-top: 0; font-size: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 5px;">Live History</h3>
+        <table id="historyTable" style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; min-width: 400px;">
+            <thead>
+                <tr style="background: var(--table-header); color: white;">
+                    <th style="padding: 8px;">Type</th>
+                    <th style="padding: 8px;">Question</th>
+                    <th style="padding: 8px;">Your Ans</th>
+                    <th style="padding: 8px;">Correct Ans</th>
+                    <th style="padding: 8px;">Status</th>
+                </tr>
+            </thead>
+            <tbody id="historyBody">
+                </tbody>
+        </table>
+    </div>
 </div>
 
 <div id="examOverlay">
@@ -135,7 +150,6 @@
 </div>
 
 <script src="js/app.js"></script>
-
 <script>
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
