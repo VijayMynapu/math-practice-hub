@@ -369,119 +369,6 @@ window.onload = () => {
     calculateMetrics();
     handleModeChange();
 };
-// --- AI MOCK EXAM VARIABLES ---
-let mockDatabase = []; // Will eventually store base64 PDFs
-let mockQCount = 20;
-
-// --- 1. UPLOADER & DATABASE LOGIC ---
-function handleFileUpload() {
-    const input = document.getElementById('docUploader');
-    if (!input.files || input.files.length === 0) return alert("Select a file first.");
-
-    Array.from(input.files).forEach(file => {
-        // Prevent duplicates
-        if(!mockDatabase.some(f => f.name === file.name)) {
-            mockDatabase.push({ name: file.name, type: file.type });
-        }
-    });
-
-    // Sort alphabetically (Requirement #6)
-    mockDatabase.sort((a, b) => a.name.localeCompare(b.name));
-    
-    updateDatabaseUI();
-    input.value = ""; // Clear input
-}
-
-function updateDatabaseUI() {
-    // Update Sidebar
-    const list = document.getElementById('databaseList');
-    list.innerHTML = '';
-    mockDatabase.forEach(file => {
-        list.innerHTML += `<li class="session-item" style="font-size: 11px;">📄 ${file.name}</li>`;
-    });
-
-    // Update Dropdown (Requirement #2)
-    const select = document.getElementById('mockSource');
-    select.innerHTML = `<option value="merge">Merge All Uploaded Topics</option>`;
-    mockDatabase.forEach((file, index) => {
-        select.innerHTML += `<option value="${index}">Specific: ${file.name}</option>`;
-    });
-}
-
-// --- 2. MOCK UI TOGGLES ---
-function toggleMockMode() {
-    const isSectional = document.querySelector('input[name="mockMode"]:checked').value === 'sectional';
-    document.getElementById('normalMockSettings').style.display = isSectional ? 'none' : 'block';
-    document.getElementById('sectionalMockSettings').style.display = isSectional ? 'block' : 'none';
-    
-    if(isSectional && document.getElementById('sectionsContainer').children.length === 0) {
-        addSectionRow(); // Add one default row if empty
-    }
-}
-
-// Requirement #4: Adjust Questions by 5
-function adjMockQ(val) {
-    mockQCount = Math.max(5, mockQCount + val); // Minimum 5 questions
-    document.getElementById('mockQCount').innerText = mockQCount;
-}
-
-// --- 3. SECTIONAL MOCK LOGIC ---
-let sectionCount = 0;
-
-function addSectionRow() {
-    sectionCount++;
-    const container = document.getElementById('sectionsContainer');
-    const row = document.createElement('div');
-    row.className = 'flex-center';
-    row.style.marginBottom = '8px';
-    row.id = `secRow_${sectionCount}`;
-    
-    row.innerHTML = `
-        <input type="text" placeholder="Section Name (e.g. Quant)" style="flex: 2; margin-right: 10px; font-size: 12px; padding: 5px;">
-        <input type="text" class="sec-time" placeholder="00:00" onkeyup="formatTime(this)" onchange="calculateTotalSectionTime()" maxlength="5" style="flex: 1; margin-right: 10px; font-size: 12px; padding: 5px; text-align: center;">
-        <button class="action-btn danger" onclick="removeSectionRow('${row.id}')" style="width: auto; padding: 5px 10px; font-size: 12px; border-radius: 4px;">X</button>
-    `;
-    container.appendChild(row);
-}
-
-function removeSectionRow(id) {
-    document.getElementById(id).remove();
-    calculateTotalSectionTime();
-}
-
-// Force MM:SS format typing
-function formatTime(input) {
-    let val = input.value.replace(/\D/g, ''); // Remove non-digits
-    if (val.length > 2) val = val.slice(0, 2) + ':' + val.slice(2, 4);
-    input.value = val;
-}
-
-function calculateTotalSectionTime() {
-    let totalSeconds = 0;
-    document.querySelectorAll('.sec-time').forEach(input => {
-        let parts = input.value.split(':');
-        if(parts.length === 2) {
-            let m = parseInt(parts[0]) || 0;
-            let s = parseInt(parts[1]) || 0;
-            totalSeconds += (m * 60) + s;
-        }
-    });
-
-    let mDisplay = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
-    let sDisplay = (totalSeconds % 60).toString().padStart(2, '0');
-    document.getElementById('totalSectionalTime').innerText = `${mDisplay}:${sDisplay}`;
-}
-
-function startAIMock() {
-    // --- HELPER: Convert File to Base64 ---
-function fileToBase64(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result.split(',')[1]); // Strip the metadata prefix
-        reader.onerror = error => reject(error);
-    });
-}
 
 // --- MOCK EXAM EXECUTION (THE AI BRAIN) ---
 async function startAIMock() {
@@ -492,13 +379,22 @@ async function startAIMock() {
         return;
     }
 
-    const fileInput = document.getElementById('docUploader');
-    if (!fileInput.files || fileInput.files.length === 0) {
-        return alert("Please select a PDF or Image file in the sidebar first!");
+    if (mockDatabase.length === 0) {
+        return alert("Please upload and add at least one PDF or Image to the database first!");
     }
 
     if (!navigator.onLine) {
         return alert("🚨 Internet connection is required to communicate with the AI servers.");
+    }
+
+    // Determine which file to process based on dropdown selection
+    const mockSourceVal = document.getElementById('mockSource').value;
+    let filesToProcess = [];
+    
+    if (mockSourceVal === 'merge') {
+        filesToProcess = mockDatabase.map(dbItem => dbItem.fileObj);
+    } else {
+        filesToProcess = [mockDatabase[parseInt(mockSourceVal)].fileObj];
     }
 
     // Turn on Loading Screen
@@ -506,8 +402,8 @@ async function startAIMock() {
     document.getElementById('loaderText').innerText = "Gemini AI is parsing your document...";
 
     try {
-        // 1. Prepare the File
-        const file = fileInput.files[0]; // Grabs the first file uploaded
+        // 1. Prepare the File (Grabbing it from our memory database now!)
+        const file = filesToProcess[0]; 
         const base64Data = await fileToBase64(file);
         const mimeType = file.type;
 
@@ -515,7 +411,7 @@ async function startAIMock() {
         const payload = {
             contents: [{
                 parts: [
-                    { text: `You are an expert exam parser. Read this document and extract the quantitative aptitude or math questions. Clean up any bad OCR formatting. Return the output STRICTLY as a JSON array of objects with this exact format: [{"op": "Math", "q": "The exact question text", "a1": "The final numerical answer"}]. Do not include markdown blocks, greetings, or any other text, just the raw JSON array. Limit to ${mockQCount} questions max.` },
+                    { text: `You are an expert quantitative aptitude exam parser. Read this document and extract the math questions. Clean up any bad OCR formatting. Return the output STRICTLY as a JSON array of objects with this exact format: [{"op": "Math", "q": "The exact question text", "a1": "The final numerical answer"}]. Do not include markdown blocks, greetings, or any other text, just the raw JSON array. Limit to ${mockQCount} questions max.` },
                     { inline_data: { mime_type: mimeType, data: base64Data } }
                 ]
             }]
@@ -533,7 +429,7 @@ async function startAIMock() {
         const data = await response.json();
         let aiText = data.candidates[0].content.parts[0].text;
         
-        // 4. Clean up Gemini's response (Strip markdown code blocks if it adds them)
+        // 4. Clean up Gemini's response
         aiText = aiText.replace(/```json/g, '').replace(/```/g, '').trim();
         const extractedQuestions = JSON.parse(aiText);
 
@@ -567,7 +463,9 @@ async function startAIMock() {
         document.getElementById('exPerfReport').style.display = 'none';
 
         // Calculate Time
-        const timePerQ = parseInt(document.querySelector('input[name="mockTimePerQ"]:checked').value);
+        const timePerQElement = document.querySelector('input[name="mockTimePerQ"]:checked');
+        const timePerQ = timePerQElement ? parseInt(timePerQElement.value) : 20; 
+        
         isExamStrict = true; 
         examTime = examQCount * timePerQ;
         updateTimerDisp();
@@ -595,8 +493,7 @@ async function startAIMock() {
         document.getElementById('aiLoader').style.display = 'none';
         alert("Failed to process document. Make sure the file is a clear image/PDF and your API key is valid.\n\nError: " + error.message);
     }
-}
-}
+}    
 // --- AI API KEY MANAGEMENT ---
 function toggleApiSettings() {
     const box = document.getElementById('apiSettingsBox');
@@ -623,11 +520,11 @@ function saveApiKey() {
 }
 
 // Load the key automatically when the app starts
-window.addEventListener('DOMContentLoaded', () => {
-    const savedKey = localStorage.getItem('mathHubGeminiKey');
-    if (savedKey) {
-        document.getElementById('geminiApiKey').value = savedKey;
-        document.getElementById('apiKeyStatus').innerText = "✅ Key loaded from device.";
-        document.getElementById('apiKeyStatus').style.color = "var(--correct)";
-    }
-});
+    window.addEventListener('DOMContentLoaded', () => {
+        const savedKey = localStorage.getItem('mathHubGeminiKey');
+        if (savedKey) {
+            document.getElementById('geminiApiKey').value = savedKey;
+            document.getElementById('apiKeyStatus').innerText = "✅ Key loaded from device.";
+            document.getElementById('apiKeyStatus').style.color = "var(--correct)";
+        }
+    });
