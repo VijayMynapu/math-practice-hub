@@ -473,7 +473,129 @@ function calculateTotalSectionTime() {
 }
 
 function startAIMock() {
-    alert("Phase 1 UI Complete! Phase 2 will connect the Gemini AI API to extract text from the selected PDFs.");
+    // --- HELPER: Convert File to Base64 ---
+function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result.split(',')[1]); // Strip the metadata prefix
+        reader.onerror = error => reject(error);
+    });
+}
+
+// --- MOCK EXAM EXECUTION (THE AI BRAIN) ---
+async function startAIMock() {
+    const apiKey = localStorage.getItem('mathHubGeminiKey');
+    if (!apiKey) {
+        alert("Please save your Gemini API Key in the sidebar settings first!");
+        toggleSidebar();
+        return;
+    }
+
+    const fileInput = document.getElementById('docUploader');
+    if (!fileInput.files || fileInput.files.length === 0) {
+        return alert("Please select a PDF or Image file in the sidebar first!");
+    }
+
+    if (!navigator.onLine) {
+        return alert("🚨 Internet connection is required to communicate with the AI servers.");
+    }
+
+    // Turn on Loading Screen
+    document.getElementById('aiLoader').style.display = 'flex';
+    document.getElementById('loaderText').innerText = "Gemini AI is parsing your document...";
+
+    try {
+        // 1. Prepare the File
+        const file = fileInput.files[0]; // Grabs the first file uploaded
+        const base64Data = await fileToBase64(file);
+        const mimeType = file.type;
+
+        // 2. Construct the Gemini API Payload
+        const payload = {
+            contents: [{
+                parts: [
+                    { text: `You are an expert exam parser. Read this document and extract the quantitative aptitude or math questions. Clean up any bad OCR formatting. Return the output STRICTLY as a JSON array of objects with this exact format: [{"op": "Math", "q": "The exact question text", "a1": "The final numerical answer"}]. Do not include markdown blocks, greetings, or any other text, just the raw JSON array. Limit to ${mockQCount} questions max.` },
+                    { inline_data: { mime_type: mimeType, data: base64Data } }
+                ]
+            }]
+        };
+
+        // 3. Send to Gemini 1.5 Flash
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+
+        const data = await response.json();
+        let aiText = data.candidates[0].content.parts[0].text;
+        
+        // 4. Clean up Gemini's response (Strip markdown code blocks if it adds them)
+        aiText = aiText.replace(/```json/g, '').replace(/```/g, '').trim();
+        const extractedQuestions = JSON.parse(aiText);
+
+        if (extractedQuestions.length === 0) throw new Error("No math questions found in this document.");
+
+        // 5. Inject into your existing Exam Engine
+        examQs = [];
+        let html = '';
+        extractedQuestions.forEach((item, i) => {
+            examQs.push({ 
+                id: i, op: item.op || "Mock Topic", q: item.q, a1: item.a1, a2: null, 
+                userAns: null, locked: false, isCorrect: false, timeTaken: null 
+            });
+            
+            html += `
+            <div class="exam-q-row" id="exRow_${i}">
+                <div class="exam-q-top">
+                    <div class="exam-q-text">${i+1}. &nbsp; ${item.q}</div>
+                    <div class="exam-input-group">
+                        <input type="text" id="exAns_${i}" placeholder="..." inputmode="decimal">
+                        <button id="exLock_${i}" onclick="lockExamAns(${i})">Lock</button>
+                    </div>
+                </div>
+                <div class="exam-ans-reveal" id="exRev_${i}"></div>
+            </div>`;
+        });
+
+        // 6. Launch the Exam UI
+        examQCount = extractedQuestions.length;
+        document.getElementById('examQuestionsList').innerHTML = html;
+        document.getElementById('exPerfReport').style.display = 'none';
+
+        // Calculate Time
+        const timePerQ = parseInt(document.querySelector('input[name="mockTimePerQ"]:checked').value);
+        isExamStrict = true; 
+        examTime = examQCount * timePerQ;
+        updateTimerDisp();
+        
+        // Swap screens
+        document.getElementById('mainDashboard').style.display = 'none';
+        document.getElementById('examOverlay').style.display = 'block';
+        document.getElementById('exScoreDisp').style.display = 'none';
+        document.getElementById('aiLoader').style.display = 'none';
+        
+        let sbBtn = document.getElementById('exSubmitBtn');
+        sbBtn.innerText = "Submit AI Paper"; 
+        sbBtn.onclick = submitExam; 
+        sbBtn.style.display = 'block';
+        
+        lastExamActionTime = Date.now();
+        examTInt = setInterval(() => {
+            examTime--;
+            updateTimerDisp();
+            if(examTime <= 0) submitExam();
+        }, 1000);
+
+    } catch (error) {
+        console.error(error);
+        document.getElementById('aiLoader').style.display = 'none';
+        alert("Failed to process document. Make sure the file is a clear image/PDF and your API key is valid.\n\nError: " + error.message);
+    }
+}
 }
 // --- AI API KEY MANAGEMENT ---
 function toggleApiSettings() {

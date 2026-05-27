@@ -28,8 +28,11 @@
     </div>
 </div>
 
+<!-- SIDEBAR -->
 <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 <div class="sidebar" id="sidebar">
+
+    <!-- 1. API SETTINGS BOX (This was missing) -->
     <div style="padding: 15px; border-bottom: 1px solid #444; background: var(--input-bg);">
         <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleApiSettings()">
             <h3 style="margin: 0; font-size: 14px; color: #9b59b6;">⚙️ AI Settings</h3>
@@ -37,21 +40,26 @@
         </div>
         <div id="apiSettingsBox" style="display: none; margin-top: 10px;">
             <label style="font-size: 11px; color: #888;">Gemini API Key:</label>
-            <input type="password" id="geminiApiKey" placeholder="Paste API Key here..." style="width: 100%; padding: 5px; font-size: 11px; margin-bottom: 5px;">
+            <input type="password" id="geminiApiKey" placeholder="Paste API Key here..." style="width: 100%; padding: 5px; font-size: 11px; margin-bottom: 5px; background: #222; color: #fff; border: 1px solid #444;">
             <button class="action-btn success" onclick="saveApiKey()" style="padding: 5px; font-size: 11px; width: 100%;">Save Key Safely</button>
             <div id="apiKeyStatus" style="font-size: 10px; margin-top: 5px; text-align: center;"></div>
         </div>
     </div>
+    
+    <!-- 2. UPLOADER SECTION -->
     <div style="padding: 15px; border-bottom: 1px solid #444;">
         <h3 style="margin-top: 0;">Upload Mock Papers</h3>
         <input type="file" id="docUploader" accept=".pdf, image/*" multiple style="width: 100%; font-size: 12px; margin-bottom: 10px;">
         <button class="action-btn" onclick="handleFileUpload()" style="padding: 5px; font-size: 12px;">Add to Database</button>
     </div>
     
+    <!-- 3. DATABASE DISPLAY -->
     <h3 style="padding-left: 15px; margin-bottom: 5px;">My Database</h3>
     <ul class="session-list" id="databaseList" style="margin-bottom: 20px;">
-        </ul>
+        <!-- Uploaded files will appear here -->
+    </ul>
 
+    <!-- 4. PAST SESSIONS -->
     <h3 style="padding-left: 15px; margin-bottom: 5px;">Past Sessions</h3>
     <ul class="session-list" id="sessionList"></ul>
 </div>
