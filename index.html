@@ -30,28 +30,74 @@
 
 <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 <div class="sidebar" id="sidebar">
-    <h3>Sessions</h3>
+    <div style="padding: 15px; border-bottom: 1px solid #444; background: var(--input-bg);">
+        <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleApiSettings()">
+            <h3 style="margin: 0; font-size: 14px; color: #9b59b6;">⚙️ AI Settings</h3>
+            <span id="apiToggleIcon">▼</span>
+        </div>
+        <div id="apiSettingsBox" style="display: none; margin-top: 10px;">
+            <label style="font-size: 11px; color: #888;">Gemini API Key:</label>
+            <input type="password" id="geminiApiKey" placeholder="Paste API Key here..." style="width: 100%; padding: 5px; font-size: 11px; margin-bottom: 5px;">
+            <button class="action-btn success" onclick="saveApiKey()" style="padding: 5px; font-size: 11px; width: 100%;">Save Key Safely</button>
+            <div id="apiKeyStatus" style="font-size: 10px; margin-top: 5px; text-align: center;"></div>
+        </div>
+    </div>
+    <div style="padding: 15px; border-bottom: 1px solid #444;">
+        <h3 style="margin-top: 0;">Upload Mock Papers</h3>
+        <input type="file" id="docUploader" accept=".pdf, image/*" multiple style="width: 100%; font-size: 12px; margin-bottom: 10px;">
+        <button class="action-btn" onclick="handleFileUpload()" style="padding: 5px; font-size: 12px;">Add to Database</button>
+    </div>
+    
+    <h3 style="padding-left: 15px; margin-bottom: 5px;">My Database</h3>
+    <ul class="session-list" id="databaseList" style="margin-bottom: 20px;">
+        </ul>
+
+    <h3 style="padding-left: 15px; margin-bottom: 5px;">Past Sessions</h3>
     <ul class="session-list" id="sessionList"></ul>
 </div>
 
-<div class="container" id="mainDashboard">
-    <div class="section-box">
-        <label>1. Solo Practice Mode:</label>
-        <select id="practiceMode" onchange="handleModeChange()">
-            <optgroup label="Arithmetic"><option value="addition">➕ Add</option><option value="subtraction">➖ Sub</option><option value="multiplication">✖️ Mult</option><option value="division" selected>➗ Div</option></optgroup>
-            <optgroup label="Percentages"><option value="percentage">📊 Pct (5 Modes)</option></optgroup>
-            <optgroup label="Powers & Roots"><option value="square">x² Sq</option><option value="cube">x³ Cube</option><option value="sqrt">√ Root</option><option value="cbrt">∛ C-Root</option></optgroup>
-        </select>
-        <div id="pctOptions" style="display:none; margin-top:10px;">
-            <select id="pctSubMode" onchange="handleModeChange()">
-                <option value="1">1. Std Frac (1/2-1/25)</option><option value="2">2. Rand Frac</option><option value="3">3. X% of Y</option><option value="4">4. X is what % of Y</option><option value="5">5. X % More/Less Y</option>
+<div class="section-box exam" style="border-left-color: #9b59b6;">
+    <label style="color: #9b59b6; font-size: 16px;">4. AI Mock Exam Center</label>
+    
+    <div class="flex-center" style="margin-bottom: 15px; background: var(--input-bg); padding: 10px; border-radius: 8px;">
+        <label style="margin-right: 15px;"><input type="radio" name="mockMode" value="normal" checked onchange="toggleMockMode()"> Normal Mock</label>
+        <label><input type="radio" name="mockMode" value="sectional" onchange="toggleMockMode()"> Sectional Mock</label>
+    </div>
+
+    <div style="margin-bottom: 15px;">
+        <label>Mock Topic Source:</label>
+        <select id="mockSource" style="width: 100%; padding: 8px;">
+            <option value="merge">Merge All Uploaded Topics</option>
             </select>
-            <div style="display:flex; gap:10px; font-size:12px; margin-top:5px;">
-                <label id="lblNum"><input type="checkbox" id="chkNum" onchange="generateQuestion()"> Rand Num</label>
-                <label id="lblJuggle"><input type="checkbox" id="chkJuggle" onchange="generateQuestion()"> Juggle</label>
-            </div>
+    </div>
+
+    <div id="normalMockSettings">
+        <div class="flex-center" style="margin-bottom:15px;">
+            <span>Questions: </span>
+            <button class="btn-small" onclick="adjMockQ(-5)">-</button>
+            <span id="mockQCount" style="font-weight:bold; font-size:18px;">20</span>
+            <button class="btn-small" onclick="adjMockQ(5)">+</button>
+        </div>
+        <div class="flex-center" style="margin-bottom:15px;">
+            <span style="margin-right: 10px;">Time per Q: </span>
+            <label style="margin-right: 10px;"><input type="radio" name="mockTimePerQ" value="20" checked> 20s</label>
+            <label><input type="radio" name="mockTimePerQ" value="30"> 30s</label>
         </div>
     </div>
+
+    <div id="sectionalMockSettings" style="display: none;">
+        <label>Define Sections (Locked Sequence):</label>
+        <div id="sectionsContainer">
+            </div>
+        <button class="action-btn success" onclick="addSectionRow()" style="margin-top: 10px; font-size: 12px; width: auto; padding: 5px 15px;">+ Add Section</button>
+        
+        <div style="margin-top: 15px; font-size: 14px; text-align: right;">
+            <strong>Total Exam Time: </strong><span id="totalSectionalTime">00:00</span>
+        </div>
+    </div>
+
+    <button class="action-btn" style="background: #9b59b6; margin-top: 15px;" onclick="startAIMock()">START AI MOCK</button>
+</div>
 
     <div class="section-box settings">
         <label style="color:var(--correct);">2. Global Ranges (Applies to Exam too)</label>
@@ -148,7 +194,11 @@
         </div>
     </div>
 </div>
-
+<div id="aiLoader" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; flex-direction: column; justify-content: center; align-items: center; color: white;">
+    <div style="width: 50px; height: 50px; border: 5px solid #333; border-top: 5px solid #9b59b6; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px;"></div>
+    <h3 id="loaderText" style="color: #9b59b6;">AI is analyzing your documents...</h3>
+    <p style="font-size: 12px; color: #aaa;">This usually takes 5-10 seconds per page.</p>
+</div>
 <script src="js/app.js"></script>
 <script>
     if ('serviceWorker' in navigator) {

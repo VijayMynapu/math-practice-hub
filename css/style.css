@@ -135,3 +135,8 @@ button.action-btn:active { transform: scale(0.98); }
 #historyTable tr:hover { background-color: var(--question-bg); }
 .status-correct { color: var(--correct); font-weight: bold; }
 .status-wrong { color: var(--incorrect); font-weight: bold; }
+/* AI LOADER ANIMATION */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
